@@ -1,0 +1,391 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Campus Club Management Portal with Automated Student Eligibility Verification
+  Serverless AWS Cloud Architecture (Cognito, API Gateway, Lambda, DynamoDB, S3, CloudFront)
+
+Globals:
+  Function:
+    Timeout: 15
+    MemorySize: 256
+    Runtime: python3.12
+    Architectures:
+      - x86_64
+    Tracing: Active
+    Environment:
+      Variables:
+        REGISTRY_TABLE: !Ref RegistryTable
+        CLUBS_TABLE: !Ref ClubsTable
+        RULES_TABLE: !Ref RulesTable
+        APPLICATIONS_TABLE: !Ref ApplicationsTable
+        EVENTS_TABLE: !Ref EventsTable
+        AUDIT_TABLE: !Ref AuditLogsTable
+        COGNITO_USER_POOL_ID: !Ref CampusUserPool
+        COGNITO_CLIENT_ID: !Ref CampusUserPoolClient
+        LOG_LEVEL: INFO
+  Api:
+    Cors:
+      AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+      AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+      AllowOrigin: "'*'"
+    TracingEnabled: true
+
+Resources:
+
+  # ============================================================================
+  # 1. AMAZON COGNITO: Register Number Authentication & Roles
+  # ============================================================================
+  CampusUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub "${AWS::StackName}-campus-userpool"
+      # Official college Register Number is used as username (not email)
+      UsernameConfiguration:
+        CaseSensitive: false
+      AutoVerifiedAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: false
+      Schema:
+        - Name: email
+          AttributeDataType: String
+          Required: false
+          Mutable: true
+        - Name: register_number
+          AttributeDataType: String
+          Mutable: false
+        - Name: role
+          AttributeDataType: String
+          Mutable: true
+        - Name: department
+          AttributeDataType: String
+          Mutable: true
+
+  CampusUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub "${AWS::StackName}-web-client"
+      UserPoolId: !Ref CampusUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+        - ALLOW_USER_SRP_AUTH
+      PreventUserExistenceErrors: ENABLED
+
+  # User Groups for Role-Based Access Control
+  StudentUserGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Student
+      Description: College student role with portal access
+      UserPoolId: !Ref CampusUserPool
+
+  ClubLeaderUserGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: ClubLeader
+      Description: Assigned club leaders with club management permissions
+      UserPoolId: !Ref CampusUserPool
+
+  AdministratorUserGroup:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      GroupName: Administrator
+      Description: Campus portal administrators and Deans
+      UserPoolId: !Ref CampusUserPool
+
+  # ============================================================================
+  # 2. AMAZON DYNAMODB: Database Tables with On-Demand Billing & GSIs
+  # ============================================================================
+
+  # Official Academic & Assessment Student Registry (Source of Truth)
+  RegistryTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-student-registry"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: register_number
+          AttributeType: S
+      KeySchema:
+        - AttributeName: register_number
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+
+  # Campus Clubs Catalog
+  ClubsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-clubs"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: club_id
+          AttributeType: S
+        - AttributeName: category
+          AttributeType: S
+      KeySchema:
+        - AttributeName: club_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: CategoryIndex
+          KeySchema:
+            - AttributeName: category
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  # Club Eligibility Criteria & Rule Versions
+  RulesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-eligibility-rules"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: club_id
+          AttributeType: S
+        - AttributeName: version
+          AttributeType: S
+      KeySchema:
+        - AttributeName: club_id
+          KeyType: HASH
+        - AttributeName: version
+          KeyType: RANGE
+
+  # Student Membership Applications (Version-preserved & conditional write safe)
+  ApplicationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-applications"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: application_id
+          AttributeType: S
+        - AttributeName: register_number
+          AttributeType: S
+        - AttributeName: club_id
+          AttributeType: S
+        - AttributeName: status
+          AttributeType: S
+      KeySchema:
+        - AttributeName: application_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: StudentApplicationsIndex
+          KeySchema:
+            - AttributeName: register_number
+              KeyType: HASH
+            - AttributeName: club_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+        - IndexName: ClubApplicationsIndex
+          KeySchema:
+            - AttributeName: club_id
+              KeyType: HASH
+            - AttributeName: status
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+
+  # Campus Events & Participant Registrations
+  EventsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-events"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: event_id
+          AttributeType: S
+        - AttributeName: club_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: event_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: ClubEventsIndex
+          KeySchema:
+            - AttributeName: club_id
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  # Administrative & Security Audit Logs
+  AuditLogsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-audit-logs"
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: actor_id
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: actor_id
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+
+  # ============================================================================
+  # 3. AWS LAMBDA: Serverless Backend & API Dispatcher
+  # ============================================================================
+  CampusApiFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-api-handler"
+      CodeUri: ./src
+      Handler: lambda_handler.lambda_handler
+      Description: Campus Club Management Portal API & Automated Eligibility Verification Engine
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RegistryTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ClubsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref RulesTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ApplicationsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref EventsTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref AuditLogsTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:AdminInitiateAuth
+                - cognito-idp:AdminCreateUser
+                - cognito-idp:AdminGetUser
+                - cognito-idp:AdminUpdateUserAttributes
+                - cognito-idp:AdminAddUserToGroup
+              Resource: !GetAtt CampusUserPool.Arn
+      Events:
+        ApiProxy:
+          Type: Api
+          Properties:
+            Path: /api/{proxy+}
+            Method: ANY
+        ApiRoot:
+          Type: Api
+          Properties:
+            Path: /api
+            Method: ANY
+
+  # ============================================================================
+  # 4. AMAZON S3 & CLOUDFRONT: Secure Frontend Hosting
+  # ============================================================================
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "${AWS::StackName}-frontend-${AWS::AccountId}"
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+  CloudFrontOriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub "${AWS::StackName}-frontend-oac"
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  FrontendDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        Comment: Campus Club Management Portal CDN
+        DefaultRootObject: index.html
+        Origins:
+          - Id: S3FrontendOrigin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !GetAtt CloudFrontOriginAccessControl.Id
+            S3OriginConfig: {}
+        DefaultCacheBehavior:
+          TargetOriginId: S3FrontendOrigin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontServicePrincipalReadOnly
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub "${FrontendBucket.Arn}/*"
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub "arn:aws:cloudfront::${AWS::AccountId}:distribution/${FrontendDistribution}"
+
+  # ============================================================================
+  # 5. AMAZON CLOUDWATCH: Monitoring & Alarms
+  # ============================================================================
+  Api5xxErrorAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Trigger when API Gateway 5xx errors exceed 5 in a 5-minute period
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 5
+      ComparisonOperator: GreaterThanThreshold
+
+Outputs:
+  ApiEndpoint:
+    Description: Production API Gateway invocation base URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/api"
+
+  CloudFrontUrl:
+    Description: Secure CloudFront HTTPS distribution URL for Campus Portal
+    Value: !Sub "https://${FrontendDistribution.DomainName}"
+
+  CognitoUserPoolId:
+    Description: Amazon Cognito User Pool ID for Register Number Authentication
+    Value: !Ref CampusUserPool
+
+  CognitoClientId:
+    Description: Amazon Cognito App Client ID
+    Value: !Ref CampusUserPoolClient
+
+  FrontendS3Bucket:
+    Description: S3 Bucket for uploading frontend website assets
+    Value: !Ref FrontendBucket

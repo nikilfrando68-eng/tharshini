@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Campus Club Management Portal | Automated Eligibility Verification</title>
+  
+  <!-- Bootstrap 5 CSS & Bootstrap Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+  
+  <!-- Custom Design System Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- ======================================================================
+         LEFT SIDEBAR NAVIGATION
+         ====================================================================== -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <img src="assets/images/college_logo.jpg" alt="Sathyabama SIST Logo" class="college-logo-img me-2" />
+        <div class="sidebar-brand">
+          <h5>SATHYABAMA (SIST)</h5>
+          <small>Campus Clubs & Eligibility</small>
+        </div>
+      </div>
+
+      <nav class="sidebar-menu" id="sidebarNavigationMenu">
+        <!-- Rendered dynamically by App.renderSidebarForRole() -->
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="d-flex align-items-center gap-2">
+          <i class="bi bi-cloud-check-fill text-success"></i>
+          <div style="font-size: 0.74rem; color: #94a3b8;">
+            Powered by <strong>AWS Cloud</strong>
+            <div>Cognito &bull; Lambda &bull; DynamoDB</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ======================================================================
+         MAIN CONTENT AREA
+         ====================================================================== -->
+    <div class="main-content">
+      
+      <!-- Top Sticky Navbar -->
+      <header class="top-navbar">
+        <div class="navbar-left">
+          <button class="btn btn-sm btn-outline-secondary d-lg-none" id="toggleSidebarBtn">
+            <i class="bi bi-list fs-5"></i>
+          </button>
+          <div class="d-flex align-items-center gap-2 d-none d-sm-flex">
+            <img src="assets/images/college_logo.jpg" alt="SIST" style="height: 34px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);" />
+            <div>
+              <h1 class="page-title mb-0" style="font-size: 1.05rem;">Sathyabama Institute of Science and Technology</h1>
+              <small class="text-muted" style="font-size: 0.7rem;">Campus Club Management & Automated Eligibility Verification Portal</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="navbar-right">
+          <!-- Persona Switcher for Quick Evaluation / Testing -->
+          <div class="d-flex align-items-center gap-2">
+            <span class="text-muted d-none d-md-inline" style="font-size: 0.8rem; font-weight: 500;">
+              <i class="bi bi-people-fill text-primary"></i> Switch Persona:
+            </span>
+            <select class="form-select form-select-sm" id="quickPersonaSelect" style="max-width: 230px; font-size: 0.82rem;">
+              <option value="">Select Persona...</option>
+              <option value="SIST_STUDENT">SIST Student (44111327 / 2006)</option>
+              <option value="ELIGIBLE_STUDENT">Arjun (123456789012)</option>
+              <option value="INELIGIBLE_STUDENT">Priya (123456789013)</option>
+              <option value="PENDING_STUDENT">Rahul (123456789014)</option>
+              <option value="CLUB_LEADER">Priya Nair (Club Leader)</option>
+              <option value="ADMIN">Dr. Murthy (Administrator)</option>
+            </select>
+          </div>
+
+          <!-- User Badge / Login Action -->
+          <div id="navUserBadgeContainer" class="user-badge" style="display: none;">
+            <div class="user-avatar" id="navUserAvatar">S</div>
+            <div class="d-none d-sm-block">
+              <div class="fw-bold" id="navUserName" style="font-size: 0.84rem; line-height: 1.2;">Student</div>
+              <small class="text-muted" id="navUserRole" style="font-size: 0.72rem;">STUDENT</small>
+            </div>
+            <button class="btn btn-sm text-danger p-0 ms-2" onclick="Auth.logout()" title="Sign Out">
+              <i class="bi bi-box-arrow-right"></i>
+            </button>
+          </div>
+
+          <button class="btn btn-sm btn-portal-primary" id="navLoginBtn" data-view="loginView">
+            <i class="bi bi-box-arrow-in-right"></i> Sign In
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic Views Container -->
+      <main class="content-area">
+
+        <!-- ==================================================================
+             VIEW 1: LANDING PAGE / PORTAL HOME
+             ================================================================== -->
+        <section id="landingView" class="view-section">
+          <!-- Hero Section -->
+          <div class="card border-0 rounded-4 overflow-hidden shadow-sm mb-4" 
+               style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #312e81 100%); color: white; padding: 3.5rem 2.5rem;">
+            <div class="row align-items-center">
+              <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                  <img src="assets/images/college_logo.jpg" alt="SIST Logo" class="college-logo-img" />
+                  <span class="badge bg-indigo-subtle text-white border border-indigo px-3 py-2" style="background: rgba(99, 102, 241, 0.25);">
+                    <i class="bi bi-patch-check-fill text-warning me-1"></i> Sathyabama Institute of Science and Technology (SIST)
+                  </span>
+                </div>
+                <h1 class="display-6 fw-bold mb-2">Campus Club Management Portal</h1>
+                <p class="text-info fw-semibold mb-3" style="font-size: 0.95rem; letter-spacing: 0.05em;">
+                  JUSTICE &bull; PEACE &bull; REVOLUTION &bull; DEEMED TO BE UNIVERSITY
+                </p>
+                <p class="lead text-light opacity-90 mb-4" style="font-size: 1.05rem; max-width: 680px;">
+                  Explore student clubs, verify your academic eligibility automatically in real-time using AWS Lambda, 
+                  and apply with your official Register Number credentials.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                  <button class="btn btn-portal-primary btn-lg px-4" data-view="loginView">
+                    <i class="bi bi-box-arrow-in-right"></i> Student Login / Set Password
+                  </button>
+                  <button class="btn btn-outline-light btn-lg px-4" data-view="exploreClubsView">
+                    <i class="bi bi-compass"></i> Explore All Clubs
+                  </button>
+                  <button class="btn btn-link text-white text-decoration-none" data-view="registerView">
+                    New Student? Register Here &rarr;
+                  </button>
+                </div>
+              </div>
+              <div class="col-lg-4 d-none d-lg-block text-center">
+                <div class="p-4 rounded-4" style="background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);">
+                  <img src="assets/images/college_logo.jpg" alt="Sathyabama Crest" style="height: 120px; object-fit: contain; border-radius: 8px; background: white; padding: 6px; box-shadow: 0 4px 15px rgba(0,0,0,0.25);" class="mb-3" />
+                  <h5 class="fw-bold mb-1">Automated Eligibility Engine</h5>
+                  <p class="text-light opacity-75 small mb-0">
+                    Real-time criteria evaluation against official university registry scores.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Highlights -->
+          <div class="row g-4 mb-5">
+            <div class="col-md-4">
+              <div class="card-custom p-4 h-100">
+                <div class="stat-icon-wrapper stat-icon-violet mb-3">
+                  <i class="bi bi-card-checklist"></i>
+                </div>
+                <h5 class="fw-bold">Register Number Login</h5>
+                <p class="text-muted" style="font-size: 0.88rem;">
+                  Official student authentication via official Register Number with Amazon Cognito, preventing arbitrary or unverified accounts.
+                </p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card-custom p-4 h-100">
+                <div class="stat-icon-wrapper stat-icon-emerald mb-3">
+                  <i class="bi bi-lightning-charge-fill"></i>
+                </div>
+                <h5 class="fw-bold">Automated Eligibility Engine</h5>
+                <p class="text-muted" style="font-size: 0.88rem;">
+                  Zero-trust server-side evaluation of CGPA, aptitude scores, coding assessments, prerequisite courses, and attendance thresholds.
+                </p>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="card-custom p-4 h-100">
+                <div class="stat-icon-wrapper stat-icon-blue mb-3">
+                  <i class="bi bi-shield-shaded"></i>
+                </div>
+                <h5 class="fw-bold">Role-Based Governance</h5>
+                <p class="text-muted" style="font-size: 0.88rem;">
+                  Dedicated dashboards for Students, Club Leaders, and Administrators with rule versioning and DynamoDB capacity limits.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 2: STUDENT LOGIN & PASSWORD CREATION
+             ================================================================== -->
+        <section id="loginView" class="view-section active">
+          <div class="auth-page-wrapper">
+            <div class="auth-card" style="max-width: 520px;">
+              <!-- Official College Logo & University Branding -->
+              <div class="login-logo-container">
+                <img src="assets/images/college_logo.jpg" alt="Sathyabama Institute of Science and Technology" class="login-logo-img" />
+                <h4 class="fw-bold text-dark mb-0 text-center" style="letter-spacing: -0.01em;">SATHYABAMA</h4>
+                <div class="badge bg-primary-subtle text-primary border my-1 px-3 py-1" style="font-size: 0.72rem; letter-spacing: 0.05em;">
+                  INSTITUTE OF SCIENCE AND TECHNOLOGY
+                </div>
+                <div class="text-muted text-center" style="font-size: 0.75rem;">
+                  (Deemed to be University) &bull; Justice &bull; Peace &bull; Revolution
+                </div>
+                <div class="fw-semibold text-secondary mt-1" style="font-size: 0.86rem;">
+                  Campus Club Management & Eligibility Portal
+                </div>
+              </div>
+
+              <!-- Quick Demo Personas -->
+              <div id="demoPersonasContainer" class="p-3 mb-3 rounded-3 border bg-light"></div>
+
+              <!-- Segmented Auth Navigation Tabs: Sign In vs Create Password -->
+              <div class="auth-nav-tabs">
+                <button type="button" class="auth-nav-tab active" id="loginTabBtn">
+                  <i class="bi bi-box-arrow-in-right"></i> Student Sign In
+                </button>
+                <button type="button" class="auth-nav-tab" id="createPassTabBtn">
+                  <i class="bi bi-key-fill text-warning"></i> Create Your Password
+                </button>
+              </div>
+
+              <!-- 1. STUDENT LOGIN FORM -->
+              <div id="loginFormContainer">
+                <form id="loginForm">
+                  <div class="mb-3">
+                    <label class="form-label-custom" for="loginRegisterNumber">
+                      Official College Register Number <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-card-text"></i></span>
+                      <input type="text" class="form-control form-control-custom" id="loginRegisterNumber" 
+                             placeholder="e.g. 44111327" required autofocus />
+                    </div>
+                    <small class="text-muted" style="font-size: 0.74rem;">Sign in using your official Register Number (e.g. <code>44111327</code>).</small>
+                  </div>
+
+                  <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                      <label class="form-label-custom mb-0" for="loginPassword">
+                        Password <span class="text-danger">*</span>
+                      </label>
+                      <a href="#" class="text-decoration-none" style="font-size: 0.78rem;" data-view="forgotPasswordView">
+                        Forgot Password?
+                      </a>
+                    </div>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
+                      <input type="password" class="form-control form-control-custom" id="loginPassword" 
+                             placeholder="e.g. 2006" required />
+                      <button class="btn btn-outline-secondary" type="button" id="togglePasswordBtn" title="Show/Hide Password">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mb-4 form-check">
+                    <input type="checkbox" class="form-check-input" id="rememberMeCheckbox" checked />
+                    <label class="form-check-label" for="rememberMeCheckbox" style="font-size: 0.82rem;">
+                      Remember my Register Number on this device
+                    </label>
+                  </div>
+
+                  <button type="submit" class="btn btn-portal-primary w-100 py-2 mb-3" id="loginSubmitBtn">
+                    <i class="bi bi-box-arrow-in-right"></i> Sign In to Portal
+                  </button>
+
+                  <div class="text-center" style="font-size: 0.84rem;">
+                    <span class="text-muted">First-time student?</span>
+                    <a href="javascript:void(0)" class="fw-bold text-decoration-none text-primary ms-1" onclick="document.getElementById('createPassTabBtn').click()">
+                      Create Your Password Here &rarr;
+                    </a>
+                  </div>
+                </form>
+              </div>
+
+              <!-- 2. STUDENT CREATE / SET PASSWORD FORM -->
+              <div id="createPassFormContainer" style="display: none;">
+                <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center gap-2" style="font-size: 0.8rem;">
+                  <i class="bi bi-info-circle-fill fs-5 text-primary"></i>
+                  <span>Enter your official Sathyabama Register Number. The system verifies your student record in the registry and activates your custom password.</span>
+                </div>
+
+                <form id="createPasswordForm">
+                  <div class="mb-3">
+                    <label class="form-label-custom" for="createPassRegNum">
+                      Official College Register Number <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-card-text"></i></span>
+                      <input type="text" class="form-control form-control-custom" id="createPassRegNum" 
+                             placeholder="e.g. 44111327" required />
+                    </div>
+                    <small class="text-muted" style="font-size: 0.74rem;">Must match your official university enrollment ID (e.g. <code>44111327</code>).</small>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label-custom" for="createPassPassword">
+                      Create Your Password <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-key-fill"></i></span>
+                      <input type="password" class="form-control form-control-custom" id="createPassPassword" 
+                             placeholder="Enter your password (e.g. 2006)" required />
+                      <button class="btn btn-outline-secondary" type="button" id="toggleCreatePassBtn" title="Show/Hide Password">
+                        <i class="bi bi-eye"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="mb-4">
+                    <label class="form-label-custom" for="createPassConfirmPassword">
+                      Confirm Your Password <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                      <span class="input-group-text bg-light"><i class="bi bi-shield-check"></i></span>
+                      <input type="password" class="form-control form-control-custom" id="createPassConfirmPassword" 
+                             placeholder="Re-enter your password (e.g. 2006)" required />
+                    </div>
+                  </div>
+
+                  <button type="submit" class="btn btn-portal-primary w-100 py-2 mb-3" id="createPassSubmitBtn">
+                    <i class="bi bi-key-fill"></i> Save & Activate My Password
+                  </button>
+
+                  <div class="text-center" style="font-size: 0.84rem;">
+                    <span class="text-muted">Already have a password?</span>
+                    <a href="javascript:void(0)" class="fw-bold text-decoration-none text-primary ms-1" onclick="document.getElementById('loginTabBtn').click()">
+                      Sign In Now
+                    </a>
+                  </div>
+                </form>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 3: STUDENT REGISTRATION
+             ================================================================== -->
+        <section id="registerView" class="view-section">
+          <div class="auth-page-wrapper">
+            <div class="auth-card" style="max-width: 580px;">
+              <div class="text-center mb-4">
+                <img src="assets/images/college_logo.jpg" alt="SIST" class="login-logo-img mx-auto" />
+                <h4 class="fw-bold text-dark mb-0">SATHYABAMA</h4>
+                <div class="badge bg-primary-subtle text-primary border my-1 px-3 py-1" style="font-size: 0.72rem;">INSTITUTE OF SCIENCE AND TECHNOLOGY</div>
+                <h5 class="fw-bold text-secondary mb-1 mt-2" style="font-size: 1.05rem;">Student Account Activation</h5>
+                <p class="text-muted" style="font-size: 0.82rem;">
+                  Verified against the official Sathyabama University student database
+                </p>
+              </div>
+
+              <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-center gap-2" style="font-size: 0.8rem;">
+                <i class="bi bi-shield-lock-fill fs-5 text-primary"></i>
+                <span>Your Register Number will be cross-checked with the registrar registry. Only officially enrolled students can register.</span>
+              </div>
+
+              <form id="registerForm">
+                <div class="row g-3">
+                  <div class="col-md-6">
+                    <label class="form-label-custom" for="regFullName">Full Name (as per ID) *</label>
+                    <input type="text" class="form-control form-control-custom" id="regFullName" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label-custom" for="regRegisterNumber">College Register Number *</label>
+                    <input type="text" class="form-control form-control-custom" id="regRegisterNumber" placeholder="e.g. 123456789012" required />
+                  </div>
+                  <div class="col-md-12">
+                    <label class="form-label-custom" for="regEmail">Official College Email *</label>
+                    <input type="email" class="form-control form-control-custom" id="regEmail" placeholder="student@campus.edu" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label-custom" for="regDepartment">Department *</label>
+                    <select class="form-select form-control-custom" id="regDepartment" required>
+                      <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                      <option value="Information Technology">Information Technology</option>
+                      <option value="Electronics and Communication">Electronics and Communication</option>
+                      <option value="Mechanical Engineering">Mechanical Engineering</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label-custom" for="regAcademicYear">Academic Year *</label>
+                    <select class="form-select form-control-custom" id="regAcademicYear" required>
+                      <option value="1">Year 1 (Freshman)</option>
+                      <option value="2">Year 2 (Sophomore)</option>
+                      <option value="3" selected>Year 3 (Junior)</option>
+                      <option value="4">Year 4 (Senior)</option>
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label-custom" for="regPassword">Password *</label>
+                    <input type="password" class="form-control form-control-custom" id="regPassword" placeholder="Min 6 characters" required />
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label-custom" for="regConfirmPassword">Confirm Password *</label>
+                    <input type="password" class="form-control form-control-custom" id="regConfirmPassword" required />
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-portal-primary w-100 py-2 mt-4 mb-3" id="registerSubmitBtn">
+                  <i class="bi bi-person-check-fill"></i> Complete Registration
+                </button>
+
+                <div class="text-center" style="font-size: 0.84rem;">
+                  <span class="text-muted">Already activated your account?</span>
+                  <a href="#" class="fw-bold text-decoration-none text-primary ms-1" data-view="loginView">
+                    Sign In
+                  </a>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 4: FORGOT PASSWORD
+             ================================================================== -->
+        <section id="forgotPasswordView" class="view-section">
+          <div class="auth-page-wrapper">
+            <div class="auth-card">
+              <div class="text-center mb-4">
+                <img src="assets/images/college_logo.jpg" alt="SIST" class="login-logo-img mx-auto" />
+                <h4 class="fw-bold text-dark mb-0">SATHYABAMA</h4>
+                <div class="badge bg-primary-subtle text-primary border my-1 px-3 py-1" style="font-size: 0.72rem;">INSTITUTE OF SCIENCE AND TECHNOLOGY</div>
+                <h5 class="fw-bold text-secondary mb-1 mt-2" style="font-size: 1.05rem;">Reset Portal Password</h5>
+                <p class="text-muted" style="font-size: 0.82rem;">
+                  Enter your official Register Number to receive a secure OTP
+                </p>
+              </div>
+
+              <div id="forgotStep1">
+                <form id="forgotPasswordForm">
+                  <div class="mb-4">
+                    <label class="form-label-custom" for="forgotRegisterNumber">College Register Number</label>
+                    <input type="text" class="form-control form-control-custom" id="forgotRegisterNumber" placeholder="e.g. 123456789012" required />
+                  </div>
+                  <button type="submit" class="btn btn-portal-primary w-100 py-2 mb-3">
+                    Send Verification Code
+                  </button>
+                  <div class="text-center">
+                    <a href="#" class="text-decoration-none text-muted" style="font-size: 0.84rem;" data-view="loginView">
+                      &larr; Back to Login
+                    </a>
+                  </div>
+                </form>
+              </div>
+
+              <div id="forgotStep2" style="display: none;">
+                <form id="resetPasswordForm">
+                  <input type="hidden" id="resetRegisterNumber" />
+                  <div class="mb-3">
+                    <label class="form-label-custom" for="resetOtpCode">OTP Verification Code</label>
+                    <input type="text" class="form-control form-control-custom" id="resetOtpCode" required />
+                  </div>
+                  <div class="mb-4">
+                    <label class="form-label-custom" for="newPassword">New Password</label>
+                    <input type="password" class="form-control form-control-custom" id="newPassword" required />
+                  </div>
+                  <button type="submit" class="btn btn-portal-primary w-100 py-2 mb-3">
+                    Update Password & Proceed
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 5: STUDENT DASHBOARD
+             ================================================================== -->
+        <section id="studentDashboardView" class="view-section">
+          <!-- Personalized Student Header -->
+          <div class="card-custom p-4 mb-4" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white;">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+              <div>
+                <span class="badge bg-indigo-subtle text-white border mb-2 px-3 py-1" style="background: rgba(99, 102, 241, 0.3);">
+                  STUDENT PORTAL
+                </span>
+                <h2 class="fw-bold mb-1 text-white">Welcome, <span id="studentWelcomeName">Student</span>!</h2>
+                <div class="d-flex flex-wrap align-items-center mt-2" id="studentHeaderMeta" style="font-size: 0.85rem; color: #cbd5e1;">
+                  <!-- Dynamically populated -->
+                </div>
+              </div>
+              <div class="d-flex gap-2">
+                <button class="btn btn-portal-primary" data-view="exploreClubsView">
+                  <i class="bi bi-compass"></i> Explore Campus Clubs
+                </button>
+                <button class="btn btn-outline-light" data-view="eventsView">
+                  <i class="bi bi-calendar-event"></i> Upcoming Events
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 Highlighted Metric Cards -->
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-xl-3">
+              <div class="stat-card">
+                <div class="stat-icon-wrapper stat-icon-violet">
+                  <i class="bi bi-mortarboard-fill"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 id="statVerifiedCgpa">--</h3>
+                  <p>Verified CGPA</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+              <div class="stat-card">
+                <div class="stat-icon-wrapper stat-icon-emerald">
+                  <i class="bi bi-patch-check-fill"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 id="statAptitudeScore">--</h3>
+                  <p>Aptitude Score</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+              <div class="stat-card">
+                <div class="stat-icon-wrapper stat-icon-blue">
+                  <i class="bi bi-code-slash"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 id="statProgrammingScore">--</h3>
+                  <p>Programming Score</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-xl-3">
+              <div class="stat-card">
+                <div class="stat-icon-wrapper stat-icon-amber">
+                  <i class="bi bi-check-all"></i>
+                </div>
+                <div class="stat-info">
+                  <h3 id="statEligibleClubsCount">--</h3>
+                  <p>Total Eligible Clubs</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Real-Time Automated Eligibility Preview Across All 9 Clubs -->
+          <div class="card-custom mb-4">
+            <div class="card-header-custom">
+              <div>
+                <h5 class="fw-bold mb-0">Automated Club Eligibility Status</h5>
+                <small class="text-muted">Calculated strictly by AWS Lambda against published active rules</small>
+              </div>
+              <button class="btn btn-sm btn-outline-primary" data-view="exploreClubsView">
+                View Full Catalog &rarr;
+              </button>
+            </div>
+            <div class="card-body-custom">
+              <div class="row" id="dashboardClubsOverview">
+                <!-- Dynamically populated with clubs & eligibility status -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Applications Table -->
+          <div class="card-custom mb-4">
+            <div class="card-header-custom">
+              <h5 class="fw-bold mb-0">My Recent Membership Applications</h5>
+              <button class="btn btn-sm btn-link text-decoration-none" data-view="myApplicationsView">
+                View All Applications &rarr;
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Application ID</th>
+                    <th>Club Name</th>
+                    <th>Rule Version</th>
+                    <th>Current Status</th>
+                    <th>Submission Date</th>
+                  </tr>
+                </thead>
+                <tbody id="studentRecentApplicationsTable">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 6: EXPLORE CLUBS
+             ================================================================== -->
+        <section id="exploreClubsView" class="view-section">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+              <h3 class="fw-bold text-dark mb-1">Explore Campus Clubs</h3>
+              <p class="text-muted mb-0">Browse university clubs, review eligibility rules, and submit membership applications.</p>
+            </div>
+          </div>
+
+          <!-- Search & Filter Controls -->
+          <div class="card-custom p-3 mb-4">
+            <div class="row g-3">
+              <div class="col-md-7">
+                <div class="input-group">
+                  <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                  <input type="text" class="form-control form-control-custom" id="clubSearchInput" 
+                         placeholder="Search clubs by name, description, or tags (e.g. Python, AI, Rover, CTF)..." />
+                </div>
+              </div>
+              <div class="col-md-5">
+                <select class="form-select form-control-custom" id="clubCategoryFilter">
+                  <option value="ALL">All Categories (9 Clubs)</option>
+                  <option value="Technical">Technical</option>
+                  <option value="Engineering & Hardware">Engineering & Hardware</option>
+                  <option value="Technical & Security">Technical & Security</option>
+                  <option value="Arts & Culture">Arts & Culture</option>
+                  <option value="Media & Creative">Media & Creative</option>
+                  <option value="Athletics">Athletics</option>
+                  <option value="Performing Arts">Performing Arts</option>
+                  <option value="Business & Innovation">Business & Innovation</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Club Cards Grid (9 Clubs) -->
+          <div class="row" id="exploreClubsGrid">
+            <!-- Dynamically populated by StudentDashboard.renderClubsGrid() -->
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 7: MY APPLICATIONS
+             ================================================================== -->
+        <section id="myApplicationsView" class="view-section">
+          <div class="mb-4">
+            <h3 class="fw-bold text-dark mb-1">My Membership Applications</h3>
+            <p class="text-muted mb-0">Track application statuses, leader reviews, and evaluation snapshots.</p>
+          </div>
+
+          <div class="card-custom">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Application ID</th>
+                    <th>Club Name</th>
+                    <th>Rule Version</th>
+                    <th>Status</th>
+                    <th>Applied At</th>
+                    <th>Leader Remarks</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="myApplicationsTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 8: MY CLUBS
+             ================================================================== -->
+        <section id="myClubsView" class="view-section">
+          <div class="mb-4">
+            <h3 class="fw-bold text-dark mb-1">My Active Club Memberships</h3>
+            <p class="text-muted mb-0">Clubs where your application has been officially verified and approved.</p>
+          </div>
+          <div class="row" id="myClubsContainer">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 9: CAMPUS EVENTS
+             ================================================================== -->
+        <section id="eventsView" class="view-section">
+          <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+              <h3 class="fw-bold text-dark mb-1">Campus Events & Workshops</h3>
+              <p class="text-muted mb-0">Register for hackathons, technical masterclasses, and exhibitions.</p>
+            </div>
+          </div>
+          <div class="row" id="eventsGrid">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 10: STUDENT PROFILE
+             ================================================================== -->
+        <section id="studentProfileView" class="view-section">
+          <div class="mb-4">
+            <h3 class="fw-bold text-dark mb-1">Official Student Record</h3>
+            <p class="text-muted mb-0">Academic transcript and assessment scores verified by the college registrar.</p>
+          </div>
+          <div id="studentProfileContainer">
+            <!-- Dynamically populated -->
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 11: CLUB LEADER DASHBOARD
+             ================================================================== -->
+        <section id="clubLeaderDashboardView" class="view-section">
+          <div class="card-custom p-4 mb-4" style="background: linear-gradient(135deg, #1e3a8a, #0f172a); color: white;">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+              <div>
+                <span class="badge bg-primary-subtle text-white border mb-2 px-3 py-1" id="leaderAssignedClubBadge">
+                  CLUB LEADERSHIP PORTAL
+                </span>
+                <h2 class="fw-bold mb-1 text-white">Welcome, <span id="leaderWelcomeName">Leader</span>!</h2>
+                <p class="mb-0 text-light opacity-90" style="font-size: 0.9rem;">
+                  Managing: <strong id="leaderClubTitle">Club</strong> &bull; Capacity: <strong id="leaderClubCapacity">--</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Pending Applications for Leader's Club -->
+          <div class="card-custom mb-4">
+            <div class="card-header-custom">
+              <h5 class="fw-bold mb-0">Applicant Pool & Eligibility Verifications</h5>
+              <small class="text-muted">Review students satisfying published criteria</small>
+            </div>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Applicant</th>
+                    <th>Department & Year</th>
+                    <th>Rule Version</th>
+                    <th>Status</th>
+                    <th>Applied At</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="leaderApplicationsTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Row: Current Members & Create Event -->
+          <div class="row">
+            <div class="col-lg-6 mb-4">
+              <div class="card-custom h-100">
+                <div class="card-header-custom">
+                  <h5 class="fw-bold mb-0">Current Club Members Directory</h5>
+                </div>
+                <div class="card-body-custom p-0">
+                  <ul class="list-group list-group-flush" id="leaderClubMembersList">
+                    <!-- Dynamically populated -->
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6 mb-4">
+              <div class="card-custom h-100">
+                <div class="card-header-custom">
+                  <h5 class="fw-bold mb-0">Create New Club Event</h5>
+                </div>
+                <div class="card-body-custom">
+                  <form id="leaderCreateEventForm">
+                    <input type="hidden" id="leaderEventClubId" />
+                    <div class="mb-3">
+                      <label class="form-label-custom">Event Title *</label>
+                      <input type="text" class="form-control form-control-custom" id="leaderEventTitle" required />
+                    </div>
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <label class="form-label-custom">Category *</label>
+                        <select class="form-select form-control-custom" id="leaderEventCategory" required>
+                          <option value="Workshop">Workshop</option>
+                          <option value="Hackathon">Hackathon</option>
+                          <option value="Exhibition">Exhibition</option>
+                          <option value="Webinar">Webinar</option>
+                        </select>
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label-custom">Max Capacity *</label>
+                        <input type="number" class="form-control form-control-custom" id="leaderEventMaxParticipants" value="50" min="5" required />
+                      </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                      <div class="col-6">
+                        <label class="form-label-custom">Date *</label>
+                        <input type="date" class="form-control form-control-custom" id="leaderEventDate" required />
+                      </div>
+                      <div class="col-6">
+                        <label class="form-label-custom">Start Time *</label>
+                        <input type="text" class="form-control form-control-custom" id="leaderEventTime" placeholder="e.g. 05:00 PM" required />
+                      </div>
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label-custom">Venue *</label>
+                      <input type="text" class="form-control form-control-custom" id="leaderEventVenue" required />
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label-custom">Registration Deadline *</label>
+                      <input type="date" class="form-control form-control-custom" id="leaderEventDeadline" required />
+                    </div>
+                    <div class="mb-3">
+                      <label class="form-label-custom">Description</label>
+                      <textarea class="form-control form-control-custom" id="leaderEventDesc" rows="2" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-portal-primary w-100">
+                      <i class="bi bi-calendar-plus"></i> Publish Campus Event
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 12: ADMINISTRATOR DASHBOARD
+             ================================================================== -->
+        <section id="adminDashboardView" class="view-section">
+          <div class="card-custom p-4 mb-4" style="background: linear-gradient(135deg, #0f172a, #1e293b); color: white;">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+              <div>
+                <span class="badge bg-danger-subtle text-white border mb-2 px-3 py-1" style="background: rgba(239, 68, 68, 0.3);">
+                  CAMPUS ADMINISTRATION & DEAN CONSOLE
+                </span>
+                <h2 class="fw-bold mb-1 text-white">Campus Overview & Health Metrics</h2>
+                <p class="mb-0 text-light opacity-90" style="font-size: 0.9rem;">
+                  Full oversight over student registry, eligibility criteria versions, and audit logs.
+                </p>
+              </div>
+              <button class="btn btn-portal-primary" onclick="AdminDashboard.exportReport()">
+                <i class="bi bi-file-earmark-arrow-down-fill"></i> Export Campus Report
+              </button>
+            </div>
+          </div>
+
+          <!-- 8 Campus Overview Metrics -->
+          <div class="row g-3 mb-4">
+            <div class="col-sm-6 col-md-3">
+              <div class="stat-card">
+                <div class="stat-info">
+                  <h3 id="adminTotalStudents">--</h3>
+                  <p>Total Students</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <div class="stat-card">
+                <div class="stat-info">
+                  <h3 id="adminTotalClubs">--</h3>
+                  <p>Active Clubs</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <div class="stat-card">
+                <div class="stat-info">
+                  <h3 id="adminVerifiedStudents" class="text-success">--</h3>
+                  <p>Verified Records</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <div class="stat-card">
+                <div class="stat-info">
+                  <h3 id="adminPendingVerifications" class="text-warning">--</h3>
+                  <p>Pending Verification</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <div class="stat-card">
+                <div class="stat-info">
+                  <h3 id="adminPendingApps" class="text-primary">--</h3>
+                  <p>Pending Applications</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <div class="stat-card">
+                <div class="stat-info">
+                  <h3 id="adminApprovedMembers" class="text-success">--</h3>
+                  <p>Approved Memberships</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <div class="stat-card">
+                <div class="stat-info">
+                  <h3 id="adminRejectedApps" class="text-danger">--</h3>
+                  <p>Rejected Applications</p>
+                </div>
+              </div>
+            </div>
+            <div class="col-sm-6 col-md-3">
+              <div class="stat-card">
+                <div class="stat-info">
+                  <h3 id="adminUpcomingEvents">--</h3>
+                  <p>Upcoming Events</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Club Fill Rate Bars -->
+          <div class="card-custom mb-4">
+            <div class="card-header-custom">
+              <h5 class="fw-bold mb-0">Club Capacity & Fill Rate Monitor</h5>
+            </div>
+            <div class="card-body-custom" id="adminClubFillStatsList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 13: ELIGIBILITY RULE MANAGEMENT
+             ================================================================== -->
+        <section id="adminRulesView" class="view-section">
+          <div class="mb-4">
+            <h3 class="fw-bold text-dark mb-1">Automated Eligibility Rules Configurator</h3>
+            <p class="text-muted mb-0">Configure club requirements, set benchmark thresholds, and publish new rule versions.</p>
+          </div>
+
+          <div class="card-custom mb-4 p-3">
+            <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div class="d-flex align-items-center gap-3">
+                <label class="form-label-custom mb-0">Select Club:</label>
+                <select class="form-select form-control-custom" id="adminRuleClubSelect" style="min-width: 250px;">
+                  <option value="coding-club">Coding Club</option>
+                  <option value="ai-ml-club">Artificial Intelligence Club</option>
+                  <option value="robotics-club">Robotics Club</option>
+                  <option value="cybersecurity-club">Cybersecurity Club</option>
+                  <option value="cultural-club">Cultural Club</option>
+                  <option value="photography-club">Photography Club</option>
+                  <option value="sports-club">Sports Club</option>
+                  <option value="music-club">Music Club</option>
+                  <option value="entrepreneurship-club">Entrepreneurship Club</option>
+                </select>
+              </div>
+              <span class="badge bg-primary px-3 py-2" id="adminActiveRuleVersionBadge">
+                Active Rule Version: v1.0
+              </span>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-lg-7 mb-4">
+              <div class="card-custom">
+                <div class="card-header-custom">
+                  <h5 class="fw-bold mb-0">Configure New Rule Version</h5>
+                </div>
+                <div class="card-body-custom">
+                  <form id="adminPublishRuleForm">
+                    <div class="row g-3 mb-3">
+                      <div class="col-md-6">
+                        <label class="form-label-custom">Minimum CGPA (out of 10.0)</label>
+                        <input type="number" step="0.1" min="0" max="10" class="form-control form-control-custom" id="ruleMinCgpa" placeholder="Leave blank if none" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label-custom">Min Aptitude Score (out of 100)</label>
+                        <input type="number" min="0" max="100" class="form-control form-control-custom" id="ruleMinAptitude" placeholder="Leave blank if none" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label-custom">Min Programming Score (out of 100)</label>
+                        <input type="number" min="0" max="100" class="form-control form-control-custom" id="ruleMinProgramming" placeholder="Leave blank if none" />
+                      </div>
+                      <div class="col-md-6">
+                        <label class="form-label-custom">Min Attendance %</label>
+                        <input type="number" step="0.5" min="0" max="100" class="form-control form-control-custom" id="ruleMinAttendance" placeholder="Leave blank if none" />
+                      </div>
+                      <div class="col-12">
+                        <label class="form-label-custom">Version Changelog / Remarks *</label>
+                        <input type="text" class="form-control form-control-custom" id="ruleRemarks" required />
+                      </div>
+                    </div>
+
+                    <div class="alert alert-warning py-2 px-3 mb-3" style="font-size: 0.82rem;">
+                      <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                      Publishing a new rule will automatically increment the version (e.g. <code>v1.0</code> &rarr; <code>v1.1</code>). 
+                      Historical student applications will maintain their original evaluated rule version snapshot!
+                    </div>
+
+                    <button type="submit" class="btn btn-portal-primary w-100 py-2">
+                      <i class="bi bi-cloud-arrow-up-fill"></i> Publish New Rule Version to DynamoDB
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-5 mb-4">
+              <div class="card-custom">
+                <div class="card-header-custom">
+                  <h5 class="fw-bold mb-0">Rule Version History & Audit</h5>
+                </div>
+                <div class="card-body-custom" id="adminRuleHistoryList">
+                  <!-- Dynamically populated -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 14: OFFICIAL STUDENT REGISTRY
+             ================================================================== -->
+        <section id="adminRegistryView" class="view-section">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+            <div>
+              <h3 class="fw-bold text-dark mb-1">Official Student Registry (Source of Truth)</h3>
+              <p class="text-muted mb-0">Official academic transcripts, verified CGPA, and benchmark scores.</p>
+            </div>
+            <button class="btn btn-portal-primary" onclick="document.getElementById('adminAddStudentModal').classList.add('active')">
+              <i class="bi bi-person-plus-fill"></i> Add Student to Registry
+            </button>
+          </div>
+
+          <div class="card-custom">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Register Number</th>
+                    <th>Full Name</th>
+                    <th>Department</th>
+                    <th class="text-center">Year</th>
+                    <th class="text-center">CGPA</th>
+                    <th class="text-center">Aptitude</th>
+                    <th class="text-center">Coding</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminRegistryTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==================================================================
+             VIEW 15: SECURITY AUDIT LOGS
+             ================================================================== -->
+        <section id="adminAuditView" class="view-section">
+          <div class="mb-4">
+            <h3 class="fw-bold text-dark mb-1">Security & Administrative Audit Logs</h3>
+            <p class="text-muted mb-0">Immutable tracking of logins, registrations, application submissions, and rule changes.</p>
+          </div>
+
+          <div class="card-custom">
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Time</th>
+                    <th>Actor & Role</th>
+                    <th>Action</th>
+                    <th>Target</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody id="adminAuditLogsTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL 1: AUTOMATED ELIGIBILITY VERIFICATION INSPECTOR & APPLY
+       ====================================================================== -->
+  <div class="modal-overlay" id="eligibilityModal">
+    <div class="modal-card modal-card-lg">
+      <div class="modal-header-custom">
+        <h5 class="fw-bold mb-0 text-dark" id="eligibilityModalTitle">
+          <i class="bi bi-shield-check text-primary me-2"></i> Automated Student Eligibility Verification
+        </h5>
+        <button type="button" class="btn-close modal-close-btn"></button>
+      </div>
+      <div class="modal-body-custom" id="eligibilityModalBody">
+        <!-- Rendered by Eligibility.renderEligibilityReport() -->
+      </div>
+      <div class="modal-footer-custom">
+        <button type="button" class="btn btn-portal-secondary modal-close-btn">Close</button>
+        <button type="button" class="btn btn-portal-primary" id="eligibilityApplyBtn" style="display: none;">
+          <i class="bi bi-send-fill"></i> Submit Membership Application
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL 2: EDIT STUDENT RECORD (ADMIN)
+       ====================================================================== -->
+  <div class="modal-overlay" id="adminEditStudentModal">
+    <div class="modal-card">
+      <div class="modal-header-custom">
+        <h5 class="fw-bold mb-0">Edit Official Academic Record</h5>
+        <button type="button" class="btn-close modal-close-btn"></button>
+      </div>
+      <div class="modal-body-custom">
+        <form id="editStudentForm" onsubmit="event.preventDefault(); AdminDashboard.handleSaveEditStudent();">
+          <div class="mb-3">
+            <label class="form-label-custom">Register Number (Locked)</label>
+            <input type="text" class="form-control form-control-custom bg-light" id="editStudentRegNum" readonly />
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Student Name</label>
+            <input type="text" class="form-control form-control-custom bg-light" id="editStudentName" readonly />
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <label class="form-label-custom">Official CGPA *</label>
+              <input type="number" step="0.01" min="0" max="10" class="form-control form-control-custom" id="editStudentCgpa" required />
+            </div>
+            <div class="col-6">
+              <label class="form-label-custom">Aptitude Score *</label>
+              <input type="number" min="0" max="100" class="form-control form-control-custom" id="editStudentAptitude" required />
+            </div>
+            <div class="col-6">
+              <label class="form-label-custom">Programming Score *</label>
+              <input type="number" min="0" max="100" class="form-control form-control-custom" id="editStudentProg" required />
+            </div>
+            <div class="col-6">
+              <label class="form-label-custom">Attendance % *</label>
+              <input type="number" step="0.1" min="0" max="100" class="form-control form-control-custom" id="editStudentAttendance" required />
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label-custom">Official Verification Status *</label>
+            <select class="form-select form-control-custom" id="editStudentStatus" required>
+              <option value="VERIFIED">VERIFIED (Official Academic Standing)</option>
+              <option value="PENDING_VERIFICATION">PENDING_VERIFICATION (Awaiting Review)</option>
+            </select>
+          </div>
+          <div class="modal-footer-custom px-0 pb-0">
+            <button type="button" class="btn btn-portal-secondary modal-close-btn">Cancel</button>
+            <button type="submit" class="btn btn-portal-primary">Save Changes to Registry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================================
+       MODAL 3: ADD STUDENT RECORD (ADMIN)
+       ====================================================================== -->
+  <div class="modal-overlay" id="adminAddStudentModal">
+    <div class="modal-card">
+      <div class="modal-header-custom">
+        <h5 class="fw-bold mb-0">Enroll New Student into Registry</h5>
+        <button type="button" class="btn-close modal-close-btn"></button>
+      </div>
+      <div class="modal-body-custom">
+        <form id="adminAddStudentForm">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label-custom">Register Number *</label>
+              <input type="text" class="form-control form-control-custom" id="addStudentRegNum" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">Full Name *</label>
+              <input type="text" class="form-control form-control-custom" id="addStudentName" required />
+            </div>
+            <div class="col-md-12">
+              <label class="form-label-custom">Email *</label>
+              <input type="email" class="form-control form-control-custom" id="addStudentEmail" required />
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">Department *</label>
+              <select class="form-select form-control-custom" id="addStudentDept" required>
+                <option value="Computer Science and Engineering">Computer Science and Engineering</option>
+                <option value="Information Technology">Information Technology</option>
+                <option value="Electronics and Communication">Electronics and Communication</option>
+                <option value="Mechanical Engineering">Mechanical Engineering</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label-custom">Academic Year *</label>
+              <select class="form-select form-control-custom" id="addStudentYear" required>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label-custom">CGPA *</label>
+              <input type="number" step="0.1" class="form-control form-control-custom" id="addStudentCgpa" value="8.0" required />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label-custom">Aptitude *</label>
+              <input type="number" class="form-control form-control-custom" id="addStudentAptitude" value="75" required />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label-custom">Coding *</label>
+              <input type="number" class="form-control form-control-custom" id="addStudentProg" value="70" required />
+            </div>
+            <div class="col-md-3">
+              <label class="form-label-custom">Attendance % *</label>
+              <input type="number" step="0.1" class="form-control form-control-custom" id="addStudentAttendance" value="85.0" required />
+            </div>
+          </div>
+          <div class="modal-footer-custom px-0 pb-0 mt-3">
+            <button type="button" class="btn btn-portal-secondary modal-close-btn">Cancel</button>
+            <button type="submit" class="btn btn-portal-primary">Add to Official Registry</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- JavaScript Modules -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/eligibility.js"></script>
+  <script src="js/student-dashboard.js"></script>
+  <script src="js/club-leader-dashboard.js"></script>
+  <script src="js/admin-dashboard.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
